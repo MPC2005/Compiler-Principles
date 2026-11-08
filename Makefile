@@ -19,4 +19,10 @@ $(TARGET): $(OBJS)
 clean:
 	rm -f $(TARGET) $(OBJS) $(DEPS)
 
-.PHONY: all clean
+# ... 之前的编译规则 ...
+
+# 新增一个运行并生成 token 文件的伪目标
+run: $(TARGET)
+	./$(TARGET) > output.token
+
+.PHONY: all clean run
