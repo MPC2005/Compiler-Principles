@@ -1,28 +1,22 @@
-CXX = g++
-CXXFLAGS = -Wall -std=c++17 -MMD -MP  # -MMD生成依赖，-MP防止头文件删除导致的错误
-TARGET = my_program
-SRCS = $(wildcard *.cpp)
-OBJS = $(SRCS:.cpp=.o)
-DEPS = $(OBJS:.o=.d)  # 依赖文件列表
+# 1. 自动查找当前目录下的第一个 .cpp 文件
+SRC = $(firstword $(wildcard *.cpp))
 
-all: $(TARGET)
+# 2. 提取不带后缀的基本文件名 (例如: my_program)
+BIN = $(basename $(SRC))
 
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+# 3. 定义目标 token 文件名 (例如: my_program.token)
+TOKEN_FILE = $(BIN).token
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# 默认目标
+all: $(TOKEN_FILE)
 
-# 将生成的.d文件包含进来，使Make知道头文件依赖
--include $(DEPS)
+# 核心规则：生成 .token 文件
+$(TOKEN_FILE): $(SRC)
+	g++ -Wall -std=c++17 $(SRC) -o $(BIN)
+	./$(BIN) > $(TOKEN_FILE)
 
+# 清理生成的文件
 clean:
-	rm -f $(TARGET) $(OBJS) $(DEPS)
+	rm -f $(BIN) $(TOKEN_FILE)
 
-# ... 之前的编译规则 ...
-
-# 新增一个运行并生成 token 文件的伪目标
-run: $(TARGET)
-	./$(TARGET) > output.token
-
-.PHONY: all clean run
+.PHONY: all clean
