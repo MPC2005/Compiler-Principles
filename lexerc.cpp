@@ -89,7 +89,7 @@ int main() {
                     cout << tot++ << ":" << "Ident:" << "\"" << cur << "\"" << endl;
                 }
                 else if (isdigit(cur[0])) {
-                    cout << tot++ << ":" << "IntConst:" << cur << endl;
+                    cout << tot++ << ":" << "IntConst:" << "\"" << cur << "\"" << endl;
                 }
                 cur.clear();
             }
@@ -148,7 +148,7 @@ int main() {
                     cout << tot++ << ":" << "Ident:" << "\"" << cur << "\"" << endl;
                 }
                 else if (isdigit(cur[0])) {
-                    cout << tot++ << ":" << "IntConst:" << cur << endl;
+                    cout << tot++ << ":" << "IntConst:" << "\"" << cur << "\"" << endl;
                 }
             }
             state = 0, cur.clear();
