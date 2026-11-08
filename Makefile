@@ -1,22 +1,30 @@
-# 1. 自动查找当前目录下的第一个 .cpp 文件
-SRC = $(firstword $(wildcard *.cpp))
+# 1. 定义变量
+CXX = g++
+CXXFLAGS = -Wall -std=c++17 -O2
+TARGET = tokenizer
 
-# 2. 提取不带后缀的基本文件名 (例如: my_program)
-BIN = $(basename $(SRC))
+# 自动查找当前目录下所有的 .c 文件作为输入文件
+INPUT_FILES = $(wildcard *.c)
+# 根据输入文件，自动推导生成对应的 .token 输出文件列表
+OUTPUT_FILES = $(INPUT_FILES:.c=.token)
 
-# 3. 定义目标 token 文件名 (例如: my_program.token)
-TOKEN_FILE = $(BIN).token
+# 2. 默认目标
+all: $(TARGET) $(OUTPUT_FILES)
 
-# 默认目标
-all: $(TOKEN_FILE)
+# 3. 编译 C++ 程序
+$(TARGET): lexerc.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# 核心规则：生成 .token 文件
-$(TOKEN_FILE): $(SRC)
-	g++ -Wall -std=c++17 $(SRC) -o $(BIN)
-	./$(BIN) > $(TOKEN_FILE)
+# 4. 核心规则：将 .c 文件作为输入，生成 .token 文件
+# $< 代表第一个依赖（即 %.c 文件）
+# $@ 代表目标文件（即 %.token 文件）
+# 注意：这里依赖了 $(TARGET)，意味着如果C++代码变了，会先重新编译，再重新生成所有token
+%.token: %.c $(TARGET)
+	./$(TARGET) < $< > $@
 
-# 清理生成的文件
+# 5. 清理生成的文件
 clean:
-	rm -f $(BIN) $(TOKEN_FILE)
+	rm -f $(TARGET) $(OUTPUT_FILES)
 
+# 声明伪目标
 .PHONY: all clean
