@@ -1,25 +1,22 @@
-# 编译器与标志
-CC := gcc
-CFLAGS := -Wall -O2
-TARGET := myapp
+CXX = g++
+CXXFLAGS = -Wall -std=c++17 -MMD -MP  # -MMD生成依赖，-MP防止头文件删除导致的错误
+TARGET = my_program
+SRCS = $(wildcard *.cpp)
+OBJS = $(SRCS:.cpp=.o)
+DEPS = $(OBJS:.o=.d)  # 依赖文件列表
 
-# 自动查找源文件并生成对象文件列表
-SRCS := $(wildcard *.c)
-OBJS := $(patsubst %.c, %.o, $(SRCS))
-
-# 默认目标
 all: $(TARGET)
 
-# 链接规则：将所有 .o 文件链接成可执行文件
 $(TARGET): $(OBJS)
-	$(CC) $^ -o $@
+	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# 模式规则：利用内置规则自动将 .c 编译为 .o
-# 这里显式列出以覆盖默认的编译命令，便于演示
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# 伪目标：清理生成的文件
-.PHONY: all clean
+# 将生成的.d文件包含进来，使Make知道头文件依赖
+-include $(DEPS)
+
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(TARGET) $(OBJS) $(DEPS)
+
+.PHONY: all clean
