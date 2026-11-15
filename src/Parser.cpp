@@ -985,20 +985,39 @@ static void printResult(const std::vector<Diagnostic>& errors) {
 }
 
 int main(int argc, char** argv) {
+    std::string inputPath;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
-        if (arg == "-ast") {
+        if (arg == "-ast" || arg == "--ast") {
             continue;
         }
-        if (arg == "-asm" || arg == "-opt") {
+        if (arg == "-opt" || arg == "--opt") {
+            continue;
+        }
+        if (arg == "-asm" || arg == "--asm") {
             std::cerr << "assembly generation is not implemented in this stage\n";
             return 2;
         }
-        std::cerr << "usage: compiler -ast\n";
+        if (!arg.empty() && arg[0] != '-' && inputPath.empty()) {
+            inputPath = arg;
+            continue;
+        }
+        std::cerr << "usage: compiler [-ast] [input.c]\n";
         return 2;
     }
-    const std::string source((std::istreambuf_iterator<char>(std::cin)),
-                             std::istreambuf_iterator<char>());
+    std::string source;
+    if (inputPath.empty()) {
+        source.assign(std::istreambuf_iterator<char>(std::cin),
+                      std::istreambuf_iterator<char>());
+    } else {
+        std::ifstream input(inputPath.c_str(), std::ios::binary);
+        if (!input) {
+            std::cerr << "unable to open input: " << inputPath << '\n';
+            return 2;
+        }
+        source.assign(std::istreambuf_iterator<char>(input),
+                      std::istreambuf_iterator<char>());
+    }
     std::vector<Diagnostic> errors;
     Lexer lexer(source);
     const std::vector<Token> tokens = lexer.scan(errors);
