@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include "Lexer.h"
 
 struct Diagnostic {
     int line;
@@ -984,10 +985,38 @@ static void printResult(const std::vector<Diagnostic>& errors) {
     }
 }
 
+static bool isNumberToken(const std::string& text) {
+    return !text.empty() && text[0] >= '0' && text[0] <= '9';
+}
+
+static void printTokenResult(const std::vector<toy::Token>& tokens,
+                             const std::vector<toy::LexError>& errors) {
+    if (!errors.empty()) {
+        std::cout << "reject\n";
+        for (const toy::LexError& error : errors) {
+            std::cout << error.line << ' ' << error.message << '\n';
+        }
+        std::cout << '\n';
+    }
+    for (std::size_t i = 0; i < tokens.size(); ++i) {
+        const toy::Token& token = tokens[i];
+        std::string type = token.type;
+        if (type.empty()) {
+            type = isNumberToken(token.text) ? "IntConst" : "Ident";
+        }
+        std::cout << i << ':' << type << ":\"" << token.text << "\"\n";
+    }
+}
+
 int main(int argc, char** argv) {
     std::string inputPath;
+    bool tokenMode = false;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
+        if (arg == "-token" || arg == "--token") {
+            tokenMode = true;
+            continue;
+        }
         if (arg == "-ast" || arg == "--ast") {
             continue;
         }
@@ -1022,6 +1051,16 @@ int main(int argc, char** argv) {
         source.assign(std::istreambuf_iterator<char>(input),
                       std::istreambuf_iterator<char>());
     }
+
+    if (tokenMode) {
+        toy::Lexer lexer(source);
+        std::vector<toy::Token> tokens;
+        std::vector<toy::LexError> errors;
+        lexer.scan(tokens, errors);
+        printTokenResult(tokens, errors);
+        return 0;
+    }
+
     std::vector<Diagnostic> errors;
     Lexer lexer(source);
     const std::vector<Token> tokens = lexer.scan(errors);
