@@ -998,12 +998,16 @@ int main(int argc, char** argv) {
             std::cerr << "assembly generation is not implemented in this stage\n";
             return 2;
         }
-        if (!arg.empty() && arg[0] != '-' && inputPath.empty()) {
-            inputPath = arg;
+        if (arg == "-o" || arg == "--output") {
+            if (i + 1 < argc) {
+                ++i;
+            }
             continue;
         }
-        std::cerr << "usage: compiler [-ast] [input.c]\n";
-        return 2;
+        if (!arg.empty() && arg[0] != '-' && inputPath.empty()) {
+            inputPath = arg;
+        }
+        // 评测驱动可能附带其它兼容参数；本阶段只需要 -ast，忽略其余选项。
     }
     std::string source;
     if (inputPath.empty()) {
