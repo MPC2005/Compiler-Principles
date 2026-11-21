@@ -26,7 +26,7 @@ TARGET_NAME := Syntax
 endif
 
 OBJ := syntax_semantic.o
-SRC := Syntaxs.cpp
+SRC := Syntax.cpp
 HDR := LL1TableData.h
 
 # Windows 没有 rm，用 cmd 的 del；Linux/macOS 用 rm
