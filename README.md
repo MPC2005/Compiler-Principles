@@ -23,6 +23,7 @@ cmake --build build
 
 ## 文件
 
-- `src/ParserDescent.cpp`：词法扫描、递归下降语法分析、语义检查和 AST 构造。
+- `src/Lexer.h`、`src/Lexer.cpp`：复用第一部分的词法分析模块。
+- `src/ParserDescent.cpp`：词法结果适配、递归下降语法分析、语义检查和 AST 构造。
 - `src/tree.h`、`src/tree.cpp`：AST 节点结构及调试输出。
 - `CMakeLists.txt`：构建配置。

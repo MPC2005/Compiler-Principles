@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include "tree.h"
+#include "Lexer.h"
 
 struct Diagnostic {
     int line;
@@ -19,157 +20,6 @@ struct Token {
     std::string text;
     int line;
     int column;
-};
-
-class Lexer {
-public:
-    explicit Lexer(const std::string& source) : source_(source) {}
-
-    std::vector<Token> scan(std::vector<Diagnostic>& errors) {
-        std::vector<Token> tokens;
-        // Scan whitespace, comments, identifiers, literals, and symbols.
-        while (!atEnd()) {
-            skipWhitespaceAndComments(errors);
-            if (atEnd()) {
-                break;
-            }
-
-            const char ch = peek();
-            if (isIdentifierStart(ch)) {
-                scanIdentifier(tokens);
-            } else if (isDigit(ch)) {
-                scanInteger(tokens);
-            } else if (!scanSymbol(tokens)) {
-                errors.push_back({line_, ""});
-                advance();
-            }
-        }
-        tokens.push_back({"<eof>", line_, column_});
-        return tokens;
-    }
-
-private:
-    const std::string& source_;
-    std::size_t position_ = 0;
-    int line_ = 0;
-    int column_ = 1;
-
-    static bool isLetter(char ch) {
-        return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
-    }
-
-    static bool isDigit(char ch) {
-        return ch >= '0' && ch <= '9';
-    }
-
-    static bool isIdentifierStart(char ch) {
-        return isLetter(ch) || ch == '_';
-    }
-
-    static bool isIdentifierPart(char ch) {
-        return isIdentifierStart(ch) || isDigit(ch);
-    }
-
-    bool atEnd() const {
-        return position_ >= source_.size();
-    }
-
-    char peek(std::size_t offset = 0) const {
-        const std::size_t next = position_ + offset;
-        return next < source_.size() ? source_[next] : '\0';
-    }
-
-    char advance() {
-        const char ch = source_[position_++];
-        if (ch == '\n') {
-            ++line_;
-            column_ = 1;
-        } else {
-            ++column_;
-        }
-        return ch;
-    }
-
-    void skipWhitespaceAndComments(std::vector<Diagnostic>& errors) {
-        while (!atEnd()) {
-            if (peek() == ' ' || peek() == '\t' || peek() == '\n' ||
-                peek() == '\r' || peek() == '\f' || peek() == '\v') {
-                advance();
-            } else if (peek() == '/' && peek(1) == '/') {
-                while (!atEnd() && peek() != '\n') {
-                    advance();
-                }
-            } else if (peek() == '/' && peek(1) == '*') {
-                const int startLine = line_;
-                // Skip a block comment.
-                advance();
-                advance();
-                while (!atEnd() && !(peek() == '*' && peek(1) == '/')) {
-                    advance();
-                }
-                if (atEnd()) {
-                    errors.push_back({startLine, ""});
-                    return;
-                }
-                advance();
-                advance();
-            } else {
-                return;
-            }
-        }
-    }
-
-    void scanIdentifier(std::vector<Token>& tokens) {
-        const std::size_t start = position_;
-        const int tokenLine = line_;
-        const int tokenColumn = column_;
-        advance();
-        while (isIdentifierPart(peek())) {
-            advance();
-        }
-        tokens.push_back({source_.substr(start, position_ - start),
-                          tokenLine, tokenColumn});
-    }
-
-    void scanInteger(std::vector<Token>& tokens) {
-        const std::size_t start = position_;
-        const int tokenLine = line_;
-        const int tokenColumn = column_;
-        while (isDigit(peek())) {
-            advance();
-        }
-        tokens.push_back({source_.substr(start, position_ - start),
-                          tokenLine, tokenColumn});
-    }
-
-    bool scanSymbol(std::vector<Token>& tokens) {
-        // Check multi-character operators before single-character symbols.
-        static const char* const twoCharacterSymbols[] = {
-            "&&", "||", "<=", ">=", "==", "!="
-        };
-        for (const char* symbol : twoCharacterSymbols) {
-            const std::string spelling(symbol);
-            if (source_.compare(position_, spelling.size(), spelling) == 0) {
-                addSymbol(tokens, spelling);
-                advance();
-                advance();
-                return true;
-            }
-        }
-
-        static const std::string oneCharacterSymbols = "+-!*/%<>=;,(){}";
-        if (oneCharacterSymbols.find(peek()) == std::string::npos) {
-            return false;
-        }
-        const std::string spelling(1, peek());
-        addSymbol(tokens, spelling);
-        advance();
-        return true;
-    }
-
-    void addSymbol(std::vector<Token>& tokens, const std::string& spelling) const {
-        tokens.push_back({spelling, line_, column_});
-    }
 };
 
 struct Expr;
@@ -1072,8 +922,29 @@ int main() {
     const std::string source((std::istreambuf_iterator<char>(std::cin)),
                              std::istreambuf_iterator<char>());
     std::vector<Diagnostic> errors;
-    Lexer lexer(source);
-    const std::vector<Token> tokens = lexer.scan(errors);
+    toy::Lexer lexer(source);
+    std::vector<toy::Token> scannedTokens;
+    std::vector<toy::LexError> lexErrors;
+    lexer.scan(scannedTokens, lexErrors);
+    std::vector<Token> tokens;
+    for (const toy::Token& token : scannedTokens) {
+        tokens.push_back({token.text, token.line, token.column});
+    }
+    for (const toy::LexError& error : lexErrors) {
+        errors.push_back({error.line, ""});
+    }
+    // 第一部分的 Lexer 不添加结束标记；解析器使用源码末尾的位置。
+    int eofLine = 0;
+    int eofColumn = 1;
+    for (char ch : source) {
+        if (ch == '\n') {
+            ++eofLine;
+            eofColumn = 1;
+        } else {
+            ++eofColumn;
+        }
+    }
+    tokens.push_back({"<eof>", eofLine, eofColumn});
     Parser parser(tokens, errors);
     const std::vector<Function> functions = parser.parse();
 
