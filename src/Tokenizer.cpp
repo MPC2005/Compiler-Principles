@@ -1,4 +1,4 @@
-#include "Lexer.h"
+﻿#include "Lexer.h"
 
 #include <iostream>
 #include <iterator>
@@ -22,5 +22,6 @@ int main() {
         std::cout << '\n';
     }
     writeTokens(tokens);
-    return errors.empty() ? 0 : 1;
+    return 0;
 }
+

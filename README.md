@@ -30,10 +30,11 @@ g++ -std=c++11 -Wall -Wextra -Wpedantic src/Tokenizer.cpp src/Lexer.cpp -o compi
 1:Ident:"main"
 ```
 
-遇到非法字符时，程序先输出 `reject` 和错误行号及原因，再输出空行和继续扫描得到的 token。错误行号从 0 开始；有词法错误时退出码为非零，否则为 0。
+遇到非法字符时，程序先输出 `reject` 和错误行号及原因，再输出空行和继续扫描得到的 token。错误行号从 0 开始；词法模式报告错误后仍返回退出码 0。
 
 ## 文件
 
 - `src/Tokenizer.cpp`：程序入口和输出。
 - `src/Lexer.h`、`src/Lexer.cpp`：token 定义及词法扫描实现。
 - `CMakeLists.txt`：构建配置。
+
