@@ -7,6 +7,7 @@
 #include <memory>
 #include <algorithm>
 #include <climits>
+#include <iterator>
 #include "LL1TableData.h"
 
 using namespace std;
@@ -1162,12 +1163,25 @@ void printReject(vector<int> errors) {
 }
 
 int main() {
-    string str, line;
-    while (getline(cin, line)) {
-        if (!line.empty() && line[line.size() - 1] == '\r') {
-            line.erase(line.size() - 1);
+    // 原样读入，保留末尾是否有换行，供 EOF 行号使用
+    string raw((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
+
+    // 统一换行符：CRLF / CR -> LF
+    string str;
+    str.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); ++i) {
+        if (raw[i] == '\r') {
+            if (i + 1 < raw.size() && raw[i + 1] == '\n') continue;
+            str += '\n';
+        } else {
+            str += raw[i];
         }
-        str += line + "\n";
+    }
+
+    // EOF 所在行号：源文件中换行符的个数（0-based）
+    int eofLine = 0;
+    for (size_t i = 0; i < str.size(); ++i) {
+        if (str[i] == '\n') ++eofLine;
     }
 
     // 1. 词法分析
@@ -1177,8 +1191,7 @@ int main() {
 
     // 2. 语法分析
     vector<int> syntaxErrors;
-    int lastTokenLine = tokens.empty() ? 0 : tokens.back().line;
-    runParser(tokens, lastTokenLine, syntaxErrors);
+    runParser(tokens, eofLine, syntaxErrors);
 
     // 存在词法/语法错误时不再进行语义分析
     if (!lexErrors.empty() || !syntaxErrors.empty()) {
@@ -1192,7 +1205,7 @@ int main() {
     Program prog;
     prog.lastLine = computeLastLine(str);
 
-    AstBuilder builder(tokens, lastTokenLine);
+    AstBuilder builder(tokens, eofLine);
     if (!builder.build(prog)) {
         printReject(vector<int>(1, builder.errorLine()));
         return 0;
