@@ -4,50 +4,47 @@
 # 用法：
 #   mingw32-make            # Windows + MinGW 构建
 #   make                    # Linux / macOS 构建
-#   mingw32-make clean      # 删除中间文件和可执行文件
+#   mingw32-make clean      # 删除 Syntax.exe
 #   mingw32-make rebuild    # 先清理再完整构建
 #
 # 说明：
-#   LL1TableData.h 不单独编译，它通过 #include 参与编译，
-#   因此作为 syntax_semantic.o 的依赖参与增量构建。
-#   源文件名含空格，下面的反斜杠转义需要 GNU Make 4.4+。
+#   - 评测平台按 ./Syntax.exe 调用，因此目标固定为 Syntax.exe。
+#   - 编译 Syntax.cpp；LL1TableData.h 由它 #include，
+#     所以 .h 作为依赖列出，不单独编译。
+#   - Windows 下的编译器与 .vscode/tasks.json 保持一致。
+#   - 依赖 FORCE，每次 make 都重新编译：即使仓库里带着
+#     Windows 的 Syntax.exe，评测机（Linux）执行 make 时也会
+#     重新生成当前平台的可执行文件。
 # ==========================================================
 
-CXX      ?= g++
-CXXFLAGS ?= -std=c++11 -Wall -Wextra -O2
-LDFLAGS  ?= -static
-
 ifeq ($(OS),Windows_NT)
-TARGET      := Syntax.exe
-TARGET_NAME := Syntax.exe
+MINGW   := C:/Users/leglon/x86_64-16.1.0-release-win32-seh-ucrt-rt_v14-rev1/mingw64
+CXX     := $(MINGW)/bin/g++.exe
+LDFLAGS := -static
+RM_F    := cmd /c del /Q /F
 else
-TARGET      := Syntax
-TARGET_NAME := Syntax
+CXX     := g++
+LDFLAGS :=
+RM_F    := rm -f
 endif
 
-OBJ := syntax_semantic.o
-SRC := Syntax.cpp
-HDR := LL1TableData.h
+CXXFLAGS := -fdiagnostics-color=always -g
 
-# Windows 没有 rm，用 cmd 的 del；Linux/macOS 用 rm
-ifeq ($(OS),Windows_NT)
-RM_F := cmd /c del /Q /F
-else
-RM_F := rm -f
-endif
+TARGET := Syntax.exe
+SRC    := Syntax.cpp
+HDR    := LL1TableData.h
 
-.PHONY: all clean rebuild
+.PHONY: all clean rebuild FORCE
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CXX) $(LDFLAGS) -o "$@" "$(OBJ)"
+# 目标名与评测平台一致；FORCE 保证每次都重新链接
+$(TARGET): $(SRC) $(HDR) FORCE
+	$(CXX) $(CXXFLAGS) $(SRC) -o $@ $(LDFLAGS)
 
-$(OBJ): $(SRC) $(HDR)
-	$(CXX) $(CXXFLAGS) -c "$<" -o "$@"
+FORCE:
 
 clean:
-	-$(RM_F) "$(OBJ)"
-	-$(RM_F) "$(TARGET_NAME)"
+	-$(RM_F) "$(TARGET)"
 
 rebuild: clean all
